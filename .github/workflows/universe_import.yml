@@ -1,0 +1,30 @@
+name: Universe Import (One-Time)
+
+on:
+  workflow_dispatch:   # Manual trigger only - run this once from GitHub Actions UI
+
+jobs:
+  import-universe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300   # 5 hour timeout - type import takes a while
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run universe import
+        env:
+          SUPABASE_HOST:     ${{ secrets.SUPABASE_HOST }}
+          SUPABASE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
+          SUPABASE_USER:     ${{ secrets.SUPABASE_USER }}
+          SUPABASE_DB:       ${{ secrets.SUPABASE_DB }}
+          ESI_USER_AGENT:    ${{ secrets.ESI_USER_AGENT }}
+        run: python run_universe.py
