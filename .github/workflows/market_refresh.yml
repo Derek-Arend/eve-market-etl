@@ -1,0 +1,57 @@
+name: Market Data Refresh
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # Every 5 minutes for orders
+    - cron: "0 12 * * *"    # Daily at noon UTC for prices
+  workflow_dispatch:         # Allow manual trigger for testing
+
+jobs:
+  market-orders:
+    name: Import Market Orders (every 5 min)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run market orders import
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ESI_USER_AGENT:       ${{ secrets.ESI_USER_AGENT }}
+        run: python run_market_orders.py
+
+  market-prices:
+    name: Import Market Prices (daily)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event.schedule == '0 12 * * *' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run market prices import
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ESI_USER_AGENT:       ${{ secrets.ESI_USER_AGENT }}
+        run: python run_market_prices.py
