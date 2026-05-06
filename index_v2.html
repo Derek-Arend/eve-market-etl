@@ -26,43 +26,11 @@
       --glow-gold: 0 0 20px rgba(200,146,42,0.4);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Exo 2', sans-serif;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
-      pointer-events: none;
-      z-index: 1000;
-    }
-    body::after {
-      content: '';
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-image: linear-gradient(rgba(0,170,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,170,255,0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      pointer-events: none;
-      z-index: 0;
-    }
+    body { background: var(--bg); color: var(--text); font-family: 'Exo 2', sans-serif; min-height: 100vh; overflow-x: hidden; }
+    body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px); pointer-events: none; z-index: 1000; }
+    body::after { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-image: linear-gradient(rgba(0,170,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,170,255,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
     #root { position: relative; z-index: 1; }
-    .header {
-      border-bottom: 1px solid var(--border);
-      padding: 16px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: linear-gradient(180deg, rgba(0,170,255,0.05) 0%, transparent 100%);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      backdrop-filter: blur(10px);
-    }
+    .header { border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(180deg, rgba(0,170,255,0.05) 0%, transparent 100%); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); }
     .header-left { display: flex; align-items: center; gap: 16px; }
     .logo { font-family: 'Orbitron', monospace; font-size: 18px; font-weight: 900; color: var(--accent); text-shadow: var(--glow); letter-spacing: 3px; }
     .logo span { color: var(--gold2); text-shadow: var(--glow-gold); }
@@ -96,13 +64,15 @@
     tbody tr:hover { background: rgba(0,170,255,0.04); }
     @keyframes fadeIn { to { opacity: 1; } }
     td { font-family: 'Share Tech Mono', monospace; font-size: 12px; padding: 11px 14px; color: var(--text); white-space: nowrap; }
-    td.name { font-family: 'Exo 2', sans-serif; font-size: 13px; font-weight: 600; color: #e0eeff; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+    td.name { font-family: 'Exo 2', sans-serif; font-size: 13px; font-weight: 600; color: #e0eeff; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
     td.category { font-size: 11px; color: var(--text2); }
     td.spread-isk { color: var(--gold2); }
     td.spread-pct { font-weight: 700; font-size: 13px; }
-    .spread-bar-cell { width: 100px; }
+    td.daily-opp { font-weight: 700; font-size: 13px; color: var(--green); }
+    td.daily-opp.zero { color: var(--text2); font-weight: 400; }
+    .spread-bar-cell { width: 80px; }
     .spread-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
-    .spread-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+    .spread-bar-fill { height: 100%; border-radius: 2px; }
     .tier-badge { font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1px; padding: 3px 8px; border-radius: 2px; text-transform: uppercase; }
     .tier-S { background: rgba(0,255,136,0.15); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
     .tier-A { background: rgba(0,170,255,0.15); color: var(--accent); border: 1px solid rgba(0,170,255,0.3); }
@@ -116,6 +86,7 @@
     @keyframes slide { to { left: 150%; } }
     .error { padding: 40px 24px; text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--red); line-height: 2; }
     .empty { padding: 60px 24px; text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text2); letter-spacing: 2px; }
+    .no-history-note { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text2); padding: 8px 24px; background: rgba(200,146,42,0.05); border-bottom: 1px solid var(--border); }
     @media (max-width: 768px) {
       .stats-bar { grid-template-columns: repeat(2, 1fr); }
       .stat { padding: 12px 16px; }
@@ -137,18 +108,15 @@ const SUPABASE_URL = "https://euqwpbiqbjddjrnkzlht.supabase.co";
 const SUPABASE_KEY = "sb_publishable_EO4O2kYa4yxZbcTdqb8ONA_nmu25Fi9";
 
 async function fetchSpreadData() {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/rpc/get_spread_analysis`,
-    {
-      method: "POST",
-      headers: {
-        "apikey": SUPABASE_KEY,
-        "Authorization": `Bearer ${SUPABASE_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ p_region_id: 10000043 }),
-    }
-  );
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_spread_analysis`, {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ p_region_id: 10000043 }),
+  });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`API ${res.status}: ${text}`);
@@ -162,6 +130,13 @@ function formatISK(val) {
   if (val >= 1_000_000)     return (val / 1_000_000).toFixed(2) + "M";
   if (val >= 1_000)         return (val / 1_000).toFixed(1) + "K";
   return val.toFixed(2);
+}
+
+function formatVol(val) {
+  if (!val) return "—";
+  if (val >= 1_000_000) return (val / 1_000_000).toFixed(1) + "M";
+  if (val >= 1_000)     return (val / 1_000).toFixed(1) + "K";
+  return Math.round(val).toLocaleString();
 }
 
 function getTier(pct) {
@@ -181,16 +156,17 @@ function getSpreadColor(pct) {
 const { useState, useEffect, useMemo } = React;
 
 function App() {
-  const [data, setData]             = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState(null);
+  const [data, setData]               = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [search, setSearch]         = useState("");
-  const [minSpread, setMinSpread]   = useState(10);
-  const [minISK, setMinISK]         = useState(1000000);
-  const [sortCol, setSortCol]       = useState("spread_pct");
-  const [sortDir, setSortDir]       = useState("desc");
-  const [tierFilter, setTierFilter] = useState("ALL");
+  const [search, setSearch]           = useState("");
+  const [minSpread, setMinSpread]     = useState(5);
+  const [minDailyOpp, setMinDailyOpp] = useState(0);
+  const [sortCol, setSortCol]         = useState("daily_isk_opp");
+  const [sortDir, setSortDir]         = useState("desc");
+  const [tierFilter, setTierFilter]   = useState("ALL");
+  const [hasHistory, setHasHistory]   = useState(true);
 
   const load = async () => {
     setLoading(true);
@@ -199,6 +175,9 @@ function App() {
       const rows = await fetchSpreadData();
       setData(rows || []);
       setLastUpdated(new Date());
+      // Check if any rows have volume data
+      const withVolume = (rows || []).filter(r => r.avg_daily_volume > 0);
+      setHasHistory(withVolume.length > 0);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -213,7 +192,7 @@ function App() {
       .filter(r => {
         if (!r.spread_pct || r.spread_pct <= 0) return false;
         if (r.spread_pct < minSpread) return false;
-        if ((r.spread_isk || 0) < minISK) return false;
+        if ((r.daily_isk_opp || 0) < minDailyOpp) return false;
         if (search && !r.type_name.toLowerCase().includes(search.toLowerCase())) return false;
         if (tierFilter !== "ALL" && getTier(r.spread_pct) !== tierFilter) return false;
         return true;
@@ -223,14 +202,17 @@ function App() {
         const bv = b[sortCol] ?? 0;
         return sortDir === "desc" ? bv - av : av - bv;
       });
-  }, [data, search, minSpread, minISK, sortCol, sortDir, tierFilter]);
+  }, [data, search, minSpread, minDailyOpp, sortCol, sortDir, tierFilter]);
 
-  const stats = useMemo(() => ({
-    total: filtered.length,
-    avgSpread: filtered.length ? (filtered.reduce((s,r) => s + (r.spread_pct||0), 0) / filtered.length).toFixed(1) : 0,
-    topSpread: filtered.length ? Math.max(...filtered.map(r => r.spread_pct||0)).toFixed(1) : 0,
-    sCount: filtered.filter(r => getTier(r.spread_pct) === "S").length,
-  }), [filtered]);
+  const stats = useMemo(() => {
+    const withOpp = filtered.filter(r => r.daily_isk_opp > 0);
+    return {
+      total: filtered.length,
+      topDailyOpp: withOpp.length ? Math.max(...withOpp.map(r => r.daily_isk_opp)) : 0,
+      totalDailyOpp: withOpp.reduce((s, r) => s + (r.daily_isk_opp || 0), 0),
+      sCount: filtered.filter(r => getTier(r.spread_pct) === "S").length,
+    };
+  }, [filtered]);
 
   const handleSort = col => {
     if (sortCol === col) setSortDir(d => d === "desc" ? "asc" : "desc");
@@ -267,22 +249,28 @@ function App() {
           <div className="stat-value green">{stats.sCount}</div>
         </div>
         <div className="stat">
-          <div className="stat-label">Avg Spread</div>
-          <div className="stat-value gold">{stats.avgSpread}%</div>
+          <div className="stat-label">Top Daily Opp</div>
+          <div className="stat-value gold">{formatISK(stats.topDailyOpp)}</div>
         </div>
         <div className="stat">
-          <div className="stat-label">Top Spread</div>
-          <div className="stat-value gold">{stats.topSpread}%</div>
+          <div className="stat-label">Total Daily Opp</div>
+          <div className="stat-value gold">{formatISK(stats.totalDailyOpp)}</div>
         </div>
       </div>
+
+      {!hasHistory && !loading && (
+        <div className="no-history-note">
+          ⚠ No market history loaded yet — run the history import first. Daily ISK Opportunity will show 0 until history is populated.
+        </div>
+      )}
 
       <div className="controls">
         <span className="control-label">FILTER:</span>
         <input className="control-input search-input" placeholder="Search item..." value={search} onChange={e => setSearch(e.target.value)} />
         <span className="control-label">MIN SPREAD %</span>
         <input className="control-input" type="number" value={minSpread} onChange={e => setMinSpread(Number(e.target.value))} />
-        <span className="control-label">MIN ISK SPREAD</span>
-        <input className="control-input" type="number" value={minISK} onChange={e => setMinISK(Number(e.target.value))} />
+        <span className="control-label">MIN DAILY ISK OPP</span>
+        <input className="control-input" type="number" value={minDailyOpp} onChange={e => setMinDailyOpp(Number(e.target.value))} placeholder="e.g. 1000000" />
         {["ALL","S","A","B","C"].map(t => (
           <button key={t} className={`filter-btn ${tierFilter===t?"active":""}`} onClick={() => setTierFilter(t)}>
             {t === "ALL" ? "ALL TIERS" : `TIER ${t}`}
@@ -298,10 +286,7 @@ function App() {
       )}
 
       {error && (
-        <div className="error">
-          ⚠ {error}<br/><br/>
-          <small>Make sure the database function is created in Supabase SQL editor.</small>
-        </div>
+        <div className="error">⚠ {error}<br/><br/><small>Make sure the database function is updated in Supabase SQL editor.</small></div>
       )}
 
       {!loading && !error && (
@@ -319,6 +304,8 @@ function App() {
                   <th onClick={() => handleSort("spread_isk")}>ISK Spread <SortIcon col="spread_isk"/></th>
                   <th onClick={() => handleSort("spread_pct")} className={sortCol==="spread_pct"?"sorted":""}>Spread % <SortIcon col="spread_pct"/></th>
                   <th>Visual</th>
+                  <th onClick={() => handleSort("avg_daily_volume")}>Avg Vol/Day <SortIcon col="avg_daily_volume"/></th>
+                  <th onClick={() => handleSort("daily_isk_opp")} className={sortCol==="daily_isk_opp"?"sorted":""}>Daily ISK Opp <SortIcon col="daily_isk_opp"/></th>
                   <th onClick={() => handleSort("sell_orders")}>Sell Orders <SortIcon col="sell_orders"/></th>
                   <th onClick={() => handleSort("buy_orders")}>Buy Orders <SortIcon col="buy_orders"/></th>
                   <th>Tier</th>
@@ -328,6 +315,7 @@ function App() {
                 {filtered.map((row, i) => {
                   const tier = getTier(row.spread_pct);
                   const color = getSpreadColor(row.spread_pct);
+                  const hasVol = row.avg_daily_volume > 0;
                   return (
                     <tr key={row.type_id} style={{animationDelay:`${i*0.02}s`}}>
                       <td className="name" title={row.type_name}>{row.type_name}</td>
@@ -340,6 +328,10 @@ function App() {
                         <div className="spread-bar">
                           <div className="spread-bar-fill" style={{width:`${Math.min(100,row.spread_pct)}%`,background:color}}/>
                         </div>
+                      </td>
+                      <td>{formatVol(row.avg_daily_volume)}</td>
+                      <td className={`daily-opp ${!hasVol?"zero":""}`}>
+                        {hasVol ? formatISK(row.daily_isk_opp) : "no history"}
                       </td>
                       <td>{row.sell_orders}</td>
                       <td>{row.buy_orders}</td>
