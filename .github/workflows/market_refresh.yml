@@ -2,13 +2,13 @@ name: Market Data Refresh
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # Every 5 minutes for orders
+    - cron: "0 * * * *"     # Every hour for orders
     - cron: "0 12 * * *"    # Daily at noon UTC for prices
   workflow_dispatch:         # Allow manual trigger for testing
 
 jobs:
   market-orders:
-    name: Import Market Orders (every 5 min)
+    name: Import Market Orders (hourly)
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
