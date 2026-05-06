@@ -15,14 +15,14 @@ from etl.db import upsert
 
 
 def now():
-    return datetime.now(timezone.utc)
+    return datetime.now(timezone.utc).isoformat()
 
 
 # ----------------------------------------------------------------
 # CATEGORIES
 # ----------------------------------------------------------------
 
-def import_categories(conn):
+def import_categories(client):
     print("\n[1/7] Importing categories...")
     category_ids = esi_get("/universe/categories/")
 
@@ -36,7 +36,7 @@ def import_categories(conn):
             "fetched_at":  now(),
         })
 
-    upsert(conn, "categories", rows, "category_id")
+    upsert(client, "categories", rows)
     print(f"  ✓ {len(rows)} categories imported")
 
 
@@ -44,11 +44,8 @@ def import_categories(conn):
 # GROUPS
 # ----------------------------------------------------------------
 
-def import_groups(conn):
+def import_groups(client):
     print("\n[2/7] Importing groups...")
-    group_ids = esi_get("/universe/groups/")
-
-    # ESI paginates groups - fetch all pages
     group_ids = esi_get_all_pages("/universe/groups/")
 
     rows = []
@@ -62,7 +59,7 @@ def import_groups(conn):
             "fetched_at":  now(),
         })
 
-    upsert(conn, "groups", rows, "group_id")
+    upsert(client, "groups", rows)
     print(f"  ✓ {len(rows)} groups imported")
 
 
@@ -70,7 +67,7 @@ def import_groups(conn):
 # TYPES
 # ----------------------------------------------------------------
 
-def import_types(conn):
+def import_types(client):
     print("\n[3/7] Importing types (~40,000 items, this will take a while)...")
     type_ids = esi_get_all_pages("/universe/types/")
 
@@ -81,7 +78,6 @@ def import_types(conn):
         try:
             data = esi_get(f"/universe/types/{tid}")
 
-            # Skip types with no group (malformed ESI data)
             if "group_id" not in data:
                 skipped += 1
                 continue
@@ -97,9 +93,9 @@ def import_types(conn):
                 "fetched_at":       now(),
             })
 
-            # Batch upsert every 500 rows to avoid memory buildup
+            # Batch upsert every 500 rows
             if len(rows) >= 500:
-                upsert(conn, "types", rows, "type_id")
+                upsert(client, "types", rows)
                 rows = []
 
         except Exception as e:
@@ -107,9 +103,8 @@ def import_types(conn):
             skipped += 1
             continue
 
-    # Final batch
     if rows:
-        upsert(conn, "types", rows, "type_id")
+        upsert(client, "types", rows)
 
     print(f"  ✓ Types imported ({skipped} skipped)")
 
@@ -118,7 +113,7 @@ def import_types(conn):
 # REGIONS
 # ----------------------------------------------------------------
 
-def import_regions(conn):
+def import_regions(client):
     print("\n[4/7] Importing regions...")
     region_ids = esi_get("/universe/regions/")
 
@@ -135,7 +130,7 @@ def import_regions(conn):
         })
         constellation_ids.extend(data.get("constellations", []))
 
-    upsert(conn, "regions", region_rows, "region_id")
+    upsert(client, "regions", region_rows)
     print(f"  ✓ {len(region_rows)} regions imported")
 
     return constellation_ids
@@ -145,7 +140,7 @@ def import_regions(conn):
 # CONSTELLATIONS
 # ----------------------------------------------------------------
 
-def import_constellations(conn, constellation_ids):
+def import_constellations(client, constellation_ids):
     print("\n[5/7] Importing constellations...")
 
     constellation_rows = []
@@ -161,7 +156,7 @@ def import_constellations(conn, constellation_ids):
         })
         system_ids.extend(data.get("systems", []))
 
-    upsert(conn, "constellations", constellation_rows, "constellation_id")
+    upsert(client, "constellations", constellation_rows)
     print(f"  ✓ {len(constellation_rows)} constellations imported")
 
     return system_ids
@@ -171,7 +166,7 @@ def import_constellations(conn, constellation_ids):
 # SYSTEMS
 # ----------------------------------------------------------------
 
-def import_systems(conn, system_ids):
+def import_systems(client, system_ids):
     print("\n[6/7] Importing systems...")
 
     system_rows = []
@@ -188,13 +183,12 @@ def import_systems(conn, system_ids):
         })
         station_ids.extend(data.get("stations", []))
 
-        # Batch upsert every 500
         if len(system_rows) >= 500:
-            upsert(conn, "systems", system_rows, "system_id")
+            upsert(client, "systems", system_rows)
             system_rows = []
 
     if system_rows:
-        upsert(conn, "systems", system_rows, "system_id")
+        upsert(client, "systems", system_rows)
 
     print(f"  ✓ Systems imported, {len(station_ids)} station IDs collected")
     return station_ids
@@ -204,7 +198,7 @@ def import_systems(conn, system_ids):
 # STATIONS
 # ----------------------------------------------------------------
 
-def import_stations(conn, station_ids):
+def import_stations(client, station_ids):
     print("\n[7/7] Importing stations...")
 
     rows = []
@@ -225,7 +219,7 @@ def import_stations(conn, station_ids):
             skipped += 1
             continue
 
-    upsert(conn, "stations", rows, "station_id")
+    upsert(client, "stations", rows)
     print(f"  ✓ {len(rows)} stations imported ({skipped} skipped)")
 
 
@@ -233,8 +227,7 @@ def import_stations(conn, station_ids):
 # SEED MONITORED REGIONS
 # ----------------------------------------------------------------
 
-def seed_monitored_regions(conn):
-    """Seed the 5 major trade hub regions for Phase 1."""
+def seed_monitored_regions(client):
     print("\n[+] Seeding monitored regions (Phase 1 hubs)...")
 
     rows = [
@@ -245,7 +238,7 @@ def seed_monitored_regions(conn):
         {"region_id": 10000042, "notes": "Metropolis - Hek",       "is_active": True},
     ]
 
-    upsert(conn, "monitored_regions", rows, "region_id")
+    upsert(client, "monitored_regions", rows)
     print("  ✓ 5 hub regions marked as active")
 
 
@@ -253,21 +246,21 @@ def seed_monitored_regions(conn):
 # FULL UNIVERSE IMPORT ENTRYPOINT
 # ----------------------------------------------------------------
 
-def run_universe_import(conn):
+def run_universe_import(client):
     print("=" * 60)
     print("EVE Universe Import")
     print("=" * 60)
 
-    import_categories(conn)
-    import_groups(conn)
-    import_types(conn)
+    import_categories(client)
+    import_groups(client)
+    import_types(client)
 
-    constellation_ids = import_regions(conn)
-    system_ids = import_constellations(conn, constellation_ids)
-    station_ids = import_systems(conn, system_ids)
-    import_stations(conn, station_ids)
+    constellation_ids = import_regions(client)
+    system_ids = import_constellations(client, constellation_ids)
+    station_ids = import_systems(client, system_ids)
+    import_stations(client, station_ids)
 
-    seed_monitored_regions(conn)
+    seed_monitored_regions(client)
 
     print("\n" + "=" * 60)
     print("✓ Universe import complete!")
