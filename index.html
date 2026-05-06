@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EVE Market Intel</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #04080f;
+      --bg2:       #080e1a;
+      --bg3:       #0d1526;
+      --border:    #1a2a4a;
+      --accent:    #00aaff;
+      --accent2:   #0066cc;
+      --gold:      #c8922a;
+      --gold2:     #ffd166;
+      --green:     #00ff88;
+      --red:       #ff4466;
+      --text:      #c8d8f0;
+      --text2:     #6a8aaa;
+      --glow:      0 0 20px rgba(0,170,255,0.3);
+      --glow-gold: 0 0 20px rgba(200,146,42,0.4);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Exo 2', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+      pointer-events: none;
+      z-index: 1000;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: linear-gradient(rgba(0,170,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,170,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    #root { position: relative; z-index: 1; }
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(180deg, rgba(0,170,255,0.05) 0%, transparent 100%);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .logo { font-family: 'Orbitron', monospace; font-size: 18px; font-weight: 900; color: var(--accent); text-shadow: var(--glow); letter-spacing: 3px; }
+    .logo span { color: var(--gold2); text-shadow: var(--glow-gold); }
+    .region-badge { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--gold2); background: rgba(200,146,42,0.1); border: 1px solid rgba(200,146,42,0.3); padding: 4px 10px; letter-spacing: 2px; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .last-updated { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text2); }
+    .refresh-btn { font-family: 'Orbitron', monospace; font-size: 10px; font-weight: 600; letter-spacing: 2px; background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 8px 16px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
+    .refresh-btn:hover { background: rgba(0,170,255,0.1); box-shadow: var(--glow); }
+    .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--border); }
+    .stat { padding: 16px 24px; border-right: 1px solid var(--border); }
+    .stat:last-child { border-right: none; }
+    .stat-label { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text2); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+    .stat-value { font-family: 'Orbitron', monospace; font-size: 20px; font-weight: 700; color: var(--accent); }
+    .stat-value.gold { color: var(--gold2); }
+    .stat-value.green { color: var(--green); }
+    .controls { padding: 16px 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.2); }
+    .control-label { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text2); letter-spacing: 1px; }
+    .control-input { background: var(--bg3); border: 1px solid var(--border); color: var(--text); font-family: 'Share Tech Mono', monospace; font-size: 12px; padding: 7px 12px; outline: none; transition: border-color 0.2s; width: 140px; }
+    .control-input:focus { border-color: var(--accent); }
+    .search-input { width: 220px; }
+    .filter-btn { font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px; background: transparent; border: 1px solid var(--border); color: var(--text2); padding: 7px 14px; cursor: pointer; transition: all 0.2s; }
+    .filter-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,170,255,0.08); }
+    .table-container { overflow-x: auto; padding: 0 24px 24px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    thead tr { border-bottom: 1px solid var(--accent2); }
+    th { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; padding: 10px 14px; text-align: left; white-space: nowrap; cursor: pointer; user-select: none; }
+    th:hover { color: var(--gold2); }
+    th.sorted { color: var(--gold2); }
+    tbody tr { border-bottom: 1px solid rgba(26,42,74,0.5); transition: background 0.15s; animation: fadeIn 0.3s ease forwards; opacity: 0; }
+    tbody tr:hover { background: rgba(0,170,255,0.04); }
+    @keyframes fadeIn { to { opacity: 1; } }
+    td { font-family: 'Share Tech Mono', monospace; font-size: 12px; padding: 11px 14px; color: var(--text); white-space: nowrap; }
+    td.name { font-family: 'Exo 2', sans-serif; font-size: 13px; font-weight: 600; color: #e0eeff; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+    td.category { font-size: 11px; color: var(--text2); }
+    td.spread-isk { color: var(--gold2); }
+    td.spread-pct { font-weight: 700; font-size: 13px; }
+    .spread-bar-cell { width: 100px; }
+    .spread-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .spread-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+    .tier-badge { font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1px; padding: 3px 8px; border-radius: 2px; text-transform: uppercase; }
+    .tier-S { background: rgba(0,255,136,0.15); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+    .tier-A { background: rgba(0,170,255,0.15); color: var(--accent); border: 1px solid rgba(0,170,255,0.3); }
+    .tier-B { background: rgba(200,146,42,0.15); color: var(--gold2); border: 1px solid rgba(200,146,42,0.3); }
+    .tier-C { background: rgba(255,68,102,0.08); color: #aa6677; border: 1px solid rgba(255,68,102,0.2); }
+    .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; gap: 20px; }
+    .loading-text { font-family: 'Orbitron', monospace; font-size: 13px; color: var(--accent); letter-spacing: 3px; animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+    .loading-bar { width: 200px; height: 2px; background: var(--border); position: relative; overflow: hidden; }
+    .loading-bar::after { content: ''; position: absolute; top: 0; left: -50%; width: 50%; height: 100%; background: var(--accent); animation: slide 1.2s ease-in-out infinite; box-shadow: var(--glow); }
+    @keyframes slide { to { left: 150%; } }
+    .error { padding: 40px 24px; text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--red); line-height: 2; }
+    .empty { padding: 60px 24px; text-align: center; font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text2); letter-spacing: 2px; }
+    @media (max-width: 768px) {
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+      .stat { padding: 12px 16px; }
+      .stat-value { font-size: 16px; }
+      .logo { font-size: 14px; }
+      .controls { padding: 12px 16px; }
+      .table-container { padding: 0 12px 24px; }
+      td, th { padding: 8px 10px; }
+      .spread-bar-cell { display: none; }
+      td.category { display: none; }
+      .header { padding: 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const SUPABASE_URL = "https://euqwpbiqbjddjrnkzlht.supabase.co";
+const SUPABASE_KEY = "sb_publishable_EO4O2kYa4yxZbcTdqb8ONA_nmu25Fi9";
+
+async function fetchSpreadData() {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/rpc/get_spread_analysis`,
+    {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_region_id: 10000043 }),
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`API ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
+function formatISK(val) {
+  if (val === null || val === undefined) return "—";
+  if (val >= 1_000_000_000) return (val / 1_000_000_000).toFixed(2) + "B";
+  if (val >= 1_000_000)     return (val / 1_000_000).toFixed(2) + "M";
+  if (val >= 1_000)         return (val / 1_000).toFixed(1) + "K";
+  return val.toFixed(2);
+}
+
+function getTier(pct) {
+  if (pct >= 50) return "S";
+  if (pct >= 25) return "A";
+  if (pct >= 10) return "B";
+  return "C";
+}
+
+function getSpreadColor(pct) {
+  if (pct >= 50) return "#00ff88";
+  if (pct >= 25) return "#00aaff";
+  if (pct >= 10) return "#ffd166";
+  return "#6a8aaa";
+}
+
+const { useState, useEffect, useMemo } = React;
+
+function App() {
+  const [data, setData]             = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [search, setSearch]         = useState("");
+  const [minSpread, setMinSpread]   = useState(10);
+  const [minISK, setMinISK]         = useState(1000000);
+  const [sortCol, setSortCol]       = useState("spread_pct");
+  const [sortDir, setSortDir]       = useState("desc");
+  const [tierFilter, setTierFilter] = useState("ALL");
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const rows = await fetchSpreadData();
+      setData(rows || []);
+      setLastUpdated(new Date());
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const filtered = useMemo(() => {
+    return data
+      .filter(r => {
+        if (!r.spread_pct || r.spread_pct <= 0) return false;
+        if (r.spread_pct < minSpread) return false;
+        if ((r.spread_isk || 0) < minISK) return false;
+        if (search && !r.type_name.toLowerCase().includes(search.toLowerCase())) return false;
+        if (tierFilter !== "ALL" && getTier(r.spread_pct) !== tierFilter) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const av = a[sortCol] ?? 0;
+        const bv = b[sortCol] ?? 0;
+        return sortDir === "desc" ? bv - av : av - bv;
+      });
+  }, [data, search, minSpread, minISK, sortCol, sortDir, tierFilter]);
+
+  const stats = useMemo(() => ({
+    total: filtered.length,
+    avgSpread: filtered.length ? (filtered.reduce((s,r) => s + (r.spread_pct||0), 0) / filtered.length).toFixed(1) : 0,
+    topSpread: filtered.length ? Math.max(...filtered.map(r => r.spread_pct||0)).toFixed(1) : 0,
+    sCount: filtered.filter(r => getTier(r.spread_pct) === "S").length,
+  }), [filtered]);
+
+  const handleSort = col => {
+    if (sortCol === col) setSortDir(d => d === "desc" ? "asc" : "desc");
+    else { setSortCol(col); setSortDir("desc"); }
+  };
+
+  const SortIcon = ({ col }) => {
+    if (sortCol !== col) return <span style={{color:"#1a2a4a"}}> ↕</span>;
+    return <span style={{color:"var(--gold2)"}}>{sortDir === "desc" ? " ↓" : " ↑"}</span>;
+  };
+
+  return (
+    <div>
+      <div className="header">
+        <div className="header-left">
+          <div className="logo">EVE <span>MARKET</span> INTEL</div>
+          <div className="region-badge">DOMAIN // AMARR</div>
+        </div>
+        <div className="header-right">
+          {lastUpdated && <div className="last-updated">UPDATED {lastUpdated.toLocaleTimeString()}</div>}
+          <button className="refresh-btn" onClick={load} disabled={loading}>
+            {loading ? "SCANNING..." : "↺ REFRESH"}
+          </button>
+        </div>
+      </div>
+
+      <div className="stats-bar">
+        <div className="stat">
+          <div className="stat-label">Opportunities</div>
+          <div className="stat-value">{stats.total}</div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">S-Tier Trades</div>
+          <div className="stat-value green">{stats.sCount}</div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">Avg Spread</div>
+          <div className="stat-value gold">{stats.avgSpread}%</div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">Top Spread</div>
+          <div className="stat-value gold">{stats.topSpread}%</div>
+        </div>
+      </div>
+
+      <div className="controls">
+        <span className="control-label">FILTER:</span>
+        <input className="control-input search-input" placeholder="Search item..." value={search} onChange={e => setSearch(e.target.value)} />
+        <span className="control-label">MIN SPREAD %</span>
+        <input className="control-input" type="number" value={minSpread} onChange={e => setMinSpread(Number(e.target.value))} />
+        <span className="control-label">MIN ISK SPREAD</span>
+        <input className="control-input" type="number" value={minISK} onChange={e => setMinISK(Number(e.target.value))} />
+        {["ALL","S","A","B","C"].map(t => (
+          <button key={t} className={`filter-btn ${tierFilter===t?"active":""}`} onClick={() => setTierFilter(t)}>
+            {t === "ALL" ? "ALL TIERS" : `TIER ${t}`}
+          </button>
+        ))}
+      </div>
+
+      {loading && (
+        <div className="loading">
+          <div className="loading-text">SCANNING MARKET DATA</div>
+          <div className="loading-bar"></div>
+        </div>
+      )}
+
+      {error && (
+        <div className="error">
+          ⚠ {error}<br/><br/>
+          <small>Make sure the database function is created in Supabase SQL editor.</small>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <div className="table-container">
+          {filtered.length === 0 ? (
+            <div className="empty">NO OPPORTUNITIES MATCH CURRENT FILTERS</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th onClick={() => handleSort("type_name")}>Item <SortIcon col="type_name"/></th>
+                  <th className="category">Category</th>
+                  <th onClick={() => handleSort("best_buy")}>Best Buy <SortIcon col="best_buy"/></th>
+                  <th onClick={() => handleSort("best_sell")}>Best Sell <SortIcon col="best_sell"/></th>
+                  <th onClick={() => handleSort("spread_isk")}>ISK Spread <SortIcon col="spread_isk"/></th>
+                  <th onClick={() => handleSort("spread_pct")} className={sortCol==="spread_pct"?"sorted":""}>Spread % <SortIcon col="spread_pct"/></th>
+                  <th>Visual</th>
+                  <th onClick={() => handleSort("sell_orders")}>Sell Orders <SortIcon col="sell_orders"/></th>
+                  <th onClick={() => handleSort("buy_orders")}>Buy Orders <SortIcon col="buy_orders"/></th>
+                  <th>Tier</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((row, i) => {
+                  const tier = getTier(row.spread_pct);
+                  const color = getSpreadColor(row.spread_pct);
+                  return (
+                    <tr key={row.type_id} style={{animationDelay:`${i*0.02}s`}}>
+                      <td className="name" title={row.type_name}>{row.type_name}</td>
+                      <td className="category">{row.category_name}</td>
+                      <td>{formatISK(row.best_buy)}</td>
+                      <td>{formatISK(row.best_sell)}</td>
+                      <td className="spread-isk">{formatISK(row.spread_isk)}</td>
+                      <td className="spread-pct" style={{color}}>{row.spread_pct?.toFixed(1)}%</td>
+                      <td className="spread-bar-cell">
+                        <div className="spread-bar">
+                          <div className="spread-bar-fill" style={{width:`${Math.min(100,row.spread_pct)}%`,background:color}}/>
+                        </div>
+                      </td>
+                      <td>{row.sell_orders}</td>
+                      <td>{row.buy_orders}</td>
+                      <td><span className={`tier-badge tier-${tier}`}>{tier}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
