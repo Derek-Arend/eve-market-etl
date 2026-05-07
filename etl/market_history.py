@@ -21,12 +21,10 @@ def now():
 
 
 def get_active_type_ids(client, region_id: int) -> list[int]:
-    """Get all unique type IDs using a direct RPC call to avoid pagination limits."""
-    response = client.rpc(
-        "get_active_type_ids",
-        {"p_region_id": region_id}
-    ).execute()
-    return [row["type_id"] for row in response.data]
+    """Get all unique type IDs that have live orders in a region."""
+    from etl.db import fetch_all
+    rows = fetch_all(client, "market_orders", {"region_id": region_id})
+    return list(set(row["type_id"] for row in rows))
 
 
 def get_active_region_ids(client) -> list[int]:
