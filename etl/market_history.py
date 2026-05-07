@@ -21,33 +21,12 @@ def now():
 
 
 def get_active_type_ids(client, region_id: int) -> list[int]:
-    """Get all unique type IDs that have live orders in a region.
-    Uses pagination to bypass Supabase's 1000 row default limit.
-    """
-    type_ids = set()
-    page_size = 1000
-    offset = 0
-
-    while True:
-        response = client.table("market_orders") \
-            .select("type_id") \
-            .eq("region_id", region_id) \
-            .range(offset, offset + page_size - 1) \
-            .execute()
-
-        rows = response.data
-        if not rows:
-            break
-
-        for row in rows:
-            type_ids.add(row["type_id"])
-
-        if len(rows) < page_size:
-            break
-
-        offset += page_size
-
-    return list(type_ids)
+    """Get all unique type IDs using a direct RPC call to avoid pagination limits."""
+    response = client.rpc(
+        "get_active_type_ids",
+        {"p_region_id": region_id}
+    ).execute()
+    return [row["type_id"] for row in response.data]
 
 
 def get_active_region_ids(client) -> list[int]:
